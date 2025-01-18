@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="styles/login.css">
+</head>
+<body>
+    <div class="login-container">
+        <h2>Admin Login</h2>
+        <form id="login-form">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+            
+            <button type="submit">Login</button>
+        </form>
+        <p>Don't have an account? <a href="#" id="create-account-link">Create a new account</a></p>
+    </div>
+
+    <div class="create-account-container" style="display: none;">
+        <h2>Admin New Account</h2>
+        <form id="create-account-form" action="/create-account" method="POST">
+            <label for="first-name">First Name:</label>
+            <input type="text" id="first-name" name="first-name" required>
+            
+            <label for="middle-name">Middle Name:</label>
+            <input type="text" id="middle-name" name="middle-name" required>
+            
+            <label for="new-username">Username:</label>
+            <input type="text" id="new-username" name="new-username" required>
+            
+            <label for="age">Age:</label>
+            <input type="number" id="age" name="age" required>
+            
+            <label for="country">Country:</label>
+            <input type="text" id="country" name="country" required>
+            
+            <label for="phone-number">Phone Number:</label>
+            <input type="tel" id="phone-number" name="phone-number" required>
+            
+            <label for="email">Email Address:</label>
+            <input type="email" id="email" name="email" required>
+            
+            <label for="new-password">Password (min 6 characters):</label>
+            <input type="password" id="new-password" name="new-password" minlength="6" required>
+            
+            <label for="verify-password">Verify Password:</label>
+            <input type="password" id="verify-password" name="verify-password" minlength="6" required>
+            
+            <button type="submit">Create Account</button>
+        </form>
+        <p>Already have an account? <a href="#" id="login-link">Login</a></p>
+    </div>
+
+    <script src="scripts/login.js"></script>
+</body>
+</html>
