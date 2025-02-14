@@ -4,6 +4,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const createAccountLink = document.getElementById('create-account-link');
     const loginLink = document.getElementById('login-link');
 
+    //customer forms and links 
+
+    // Customer forms and links
+    const customerLoginForm = document.getElementById('login-form');
+    const customerCreateAccountForm = document.getElementById('create-account-form');
+    const customerCreateAccountLink = document.getElementById('create-account-link');
+    const customerLoginLink = document.getElementById('login-link');
+
+
+    // Toggle betweenadmin login and create account forms
     createAccountLink.addEventListener('click', function(e) {
         e.preventDefault();
         document.querySelector('.login-container').style.display = 'none';
@@ -16,38 +26,44 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelector('.create-account-container').style.display = 'none';
     });
 
-    loginForm.addEventListener('submit', async function(e) {
+
+    
+
+    // Handle admin login form submission
+    loginForm.addEventListener('submit', async function (e) {
         e.preventDefault();
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
-
+    
         try {
             const response = await fetch('/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password }),
             });
+    
             const data = await response.json();
-
-            if (response.ok) {
+            console.log("Response data:", data); // Debugging
+    
+            if (response.ok && data.token) { 
                 localStorage.setItem('token', data.token);
-                window.location.href = 'admin.html';
+                window.location.href = '/admin.html'; // Redirect only if login is successful
             } else {
-                alert(data.message || 'Login failed!');
+                alert(data.message || 'Login failed!'); // Show alert ONLY if login fails
             }
         } catch (error) {
             alert('Server error. Try again later.');
         }
     });
+    
+    
 
+    // Handle admin create account form submission
     createAccountForm.addEventListener('submit', async function(e) {
         e.preventDefault();
-        const firstName = document.getElementById('first-name').value;
-        const middleName = document.getElementById('middle-name').value;
+        const fullName = document.getElementById('full-name').value;
         const newUsername = document.getElementById('new-username').value;
-        const age = document.getElementById('age').value;
-        const country = document.getElementById('country').value;
-        const phoneNumber = document.getElementById('phone-number').value;
+        const skepid = document.getElementById('skep-id').value;
         const email = document.getElementById('email').value;
         const newPassword = document.getElementById('new-password').value;
         const verifyPassword = document.getElementById('verify-password').value;
@@ -62,8 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    firstName, middleName, newUsername, age, country,
-                    phoneNumber, email, newPassword
+                    fullName, newUsername, skepid, email, newPassword
                 }),
             });
 
@@ -71,8 +86,71 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (response.ok) {
                 alert('Account created successfully!');
-                // Optionally redirect to the login page or auto-login
-                window.location.href = 'admin-login.html';
+                window.location.href = '/admin-login.html'; // Use relative URL for redirect
+            } else {
+                alert(data.message || 'Account creation failed!');
+            }
+        } catch (error) {
+            alert('Server error. Try again later.');
+        }
+    });
+
+
+
+
+    // Handle customer login form submission
+    customerLoginForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            const response = await fetch('/customer-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password }),
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem('token', data.token);
+                window.location.href = 'index.html'; // Use relative URL for redirect
+            } else {
+                alert(data.message || 'Login failed!');
+            }
+        } catch (error) {
+            alert('Server error. Try again later.');
+        }
+    });
+
+    // Handle customer create account form submission
+    customerCreateAccountForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const fullName = document.getElementById('fullname').value;
+        const username = document.getElementById('new-username').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('new-password').value;
+        const verifyPassword = document.getElementById('verify-password').value;
+
+        if (password !== verifyPassword) {
+            alert('Passwords do not match!');
+            return;
+        }
+
+        try {
+            const response = await fetch('/create-customer-account', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fullName, username, email, password
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Customer account created successfully!');
+                window.location.href = '/login.html'; // Use relative URL for redirect
             } else {
                 alert(data.message || 'Account creation failed!');
             }

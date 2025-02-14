@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TERRA ECOMMERCE</title>
+    <link rel="stylesheet" href="styles/style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="scripts/script.js" defer></script>
+</head>
+<body>
+    <header class="header">
+        <div class="login-button">
+            <button class="login" onclick="openLoginModal()">Login</button>
+        </div>
+        <div class="cart-count">
+            <span class="cart-icon">🛍️</span>
+            <span class="cart-items">0</span>
+        </div>
+        <div class="logo">
+            <img src="images/Terra.png" alt="Terra-balance Logo" width="50px" height="50px">
+        </div>
+        <h1>TERRA BALANCE ENTERPRISE</h1>
+        <div class="search-bar">
+            <input type="text" placeholder="Search..." id="search-input">
+            <button class="search-button" id="search-button">Search</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Product List -->
+        <div id="product-list" class="product-list"></div>
+
+        <!-- Cart Modal -->
+        <div id="cart-modal" class="cart-modal">
+            <div class="cart-modal-content">
+                <span id="close-modal" class="close">&times;</span>
+                <h2>Your Cart</h2>
+                <ul id="cart-list"></ul>
+                <button id="checkout-button" class="checkout-button">Checkout</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeLoginModal()">&times;</span>
+            <div class="login-container">
+                <h2>Login</h2>
+                <form id="login-form" action="/customer-login" method="POST">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+
+                    <button type="submit">Login</button>
+                </form>
+                <p>Don't have an account? <a href="#" id="create-account-link">Create a new account</a></p>
+            </div>
+
+
+            <div id="profileModal" class="modal">
+                <div class="modal-content">
+                    <span class="close" onclick="closeProfileModal()">&times;</span>
+                    <div class="profile-container">
+                        <h2>User Profile</h2>
+                        <img id="profile-pic" src="default-profile-pic.png" alt="Profile Picture">
+                        <p id="profile-name"></p>
+                        <p id="profile-username"></p>
+                        <p id="profile-email"></p>
+                        <p id="profile-created-at"></p>
+                        <!-- Add other fields as needed -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Account Container -->
+            <div class="create-account-container" style="display: none;">
+                <h2>Create Account</h2>
+                <form id="create-account-form" action="/create-customer-account" method="POST">
+                    <label for="fullname">Full Name:</label>
+                    <input type="text" id="fullname" name="fullName" required>
+
+                    <label for="new-username">Username:</label>
+                    <input type="text" id="new-username" name="username" required>
+
+                    <label for="email">Email Address:</label>
+                    <input type="email" id="email" name="email" required>
+
+                    <label for="new-password">Password (min 6 characters):</label>
+                    <input type="password" id="new-password" name="password" minlength="6" required>
+
+                    <label for="verify-password">Verify Password:</label>
+                    <input type="password" id="verify-password" name="verifyPassword" minlength="6" required>
+
+                    <button type="submit">Create Account</button>
+                </form>
+                <p>Already have an account? <a href="#" id="login-link">Login</a></p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <nav>
+            <ul>
+                <li><a href="https://www.terra-balance.com/home" target="_blank">Home</a></li>
+                <li><a href="https://www.terra-balance.com/our-services" target="_blank">All Products</a></li>
+                <li><a href="https://www.terra-balance.com/about" target="_blank">About</a></li>
+            </ul>
+        </nav>
+        <p>COPYRIGHT ©2023, TERRA BALANCE ENTERPRISES. ALL RIGHTS RESERVED.</p>
+    </footer>
+</body>
+</html>
