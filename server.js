@@ -29,6 +29,26 @@ module.exports = pool;
 
 pool.connect().catch(err => console.error('PostgreSQL connection error:', err));
 
+//DOWNLOADING DATABASE ON RENDER
+const { exec } = require("child_process");
+
+const FILE_URL = "https://drive.google.com/uc?export=download&id=17qjkjQBS_lfu3Zkyc4ErkRfqF-ZnZ7e4";
+const OUTPUT_FILE = "tera_backup.sql";
+
+// Download the SQL file
+const downloadFile = () => {
+  exec(`wget --no-check-certificate '${FILE_URL}' -O ${OUTPUT_FILE}`, 
+  (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error downloading file: ${error.message}`);
+      return;
+    }
+    console.log("Download complete!");
+  });
+};
+
+downloadFile();
+
 
 // Secret key for JWT
 const JWT_SECRET = process.env.JWT_SECRET;
