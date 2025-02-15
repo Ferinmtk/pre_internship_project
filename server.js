@@ -51,36 +51,33 @@ downloadFile();
 
 require("dotenv").config();
 const { exec } = require("child_process");
-const fs = require("fs");
+const path = require("path");
 
 const dbUrl = new URL(process.env.DATABASE_URL);
 const DB_HOST = dbUrl.hostname;
 const DB_USER = dbUrl.username;
-const DB_NAME = dbUrl.pathname.substring(1);
+const DB_NAME = dbUrl.pathname.substring(1); // Remove leading '/'
 const DB_PASSWORD = dbUrl.password;
-const BACKUP_FILE = "tera_backup.sql"; // The file must be in the project root
+const BACKUP_FILE = path.join(__dirname, "tera_backup.sql"); // Absolute path
 
-// Function to restore the database
 const restoreDB = () => {
-  if (!fs.existsSync(BACKUP_FILE)) {
-    console.error(`Backup file ${BACKUP_FILE} not found!`);
-    return;
-  }
+    console.log("🚀 Starting database restore...");
+    console.log(`📂 Looking for backup file at: ${BACKUP_FILE}`);
 
-  console.log("Restoring database...");
-  exec(
-    `PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} -f ${BACKUP_FILE}`,
-    (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error restoring database: ${error.message}`);
-        return;
-      }
-      console.log("Database restored successfully!");
-    }
-  );
+    exec(
+        `PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} -f ${BACKUP_FILE}`,
+        (error, stdout, stderr) => {
+            if (error) {
+                console.error(`❌ Error restoring database: ${error.message}`);
+                console.error(`💬 stderr: ${stderr}`);
+                return;
+            }
+            console.log("✅ Database restored successfully!");
+            console.log(`📝 stdout: ${stdout}`);
+        }
+    );
 };
 
-// Restore database on startup
 restoreDB();
 
 
