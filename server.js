@@ -17,7 +17,11 @@ const io = socketIo(server);
 
 app.use(bodyParser.json());
 
-// PostgreSQL setup
+require("dotenv").config();
+const { exec } = require("child_process");
+const path = require("path");
+const { Pool } = require("pg");
+
 // PostgreSQL setup with SSL
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -25,44 +29,38 @@ const pool = new Pool({
         rejectUnauthorized: false, // Allow SSL connection
     },
 });
-module.exports = pool;
 
-pool.connect().catch(err => console.error('PostgreSQL connection error:', err));
+pool.connect()
+    .then(() => console.log("✅ PostgreSQL connected successfully!"))
+    .catch(err => console.error("❌ PostgreSQL connection error:", err));
 
-//DOWNLOADING DATABASE ON RENDER
-const { exec } = require("child_process");
-
+// Downloading the Database Backup File
 const FILE_URL = "https://drive.google.com/uc?export=download&id=17qjkjQBS_lfu3Zkyc4ErkRfqF-ZnZ7e4";
-const OUTPUT_FILE = "tera_backup.sql";
+const BACKUP_FILE = path.join(__dirname, "tera_backup.sql"); // Absolute path
 
-// Download the SQL file
 const downloadFile = () => {
-  exec(`wget --no-check-certificate '${FILE_URL}' -O ${OUTPUT_FILE}`, 
-  (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error downloading file: ${error.message}`);
-      return;
-    }
-    console.log("Download complete!");
-  });
+    console.log("📥 Downloading backup file...");
+    exec(`wget --no-check-certificate '${FILE_URL}' -O ${BACKUP_FILE}`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`❌ Error downloading file: ${error.message}`);
+            console.error(`💬 stderr: ${stderr}`);
+            return;
+        }
+        console.log("✅ Backup file downloaded successfully!");
+        restoreDB(); // Restore the database after downloading
+    });
 };
 
-downloadFile();
-
-require("dotenv").config();
-const { exec } = require("child_process");
-const path = require("path");
-
+// Restore the Database
 const dbUrl = new URL(process.env.DATABASE_URL);
 const DB_HOST = dbUrl.hostname;
 const DB_USER = dbUrl.username;
 const DB_NAME = dbUrl.pathname.substring(1); // Remove leading '/'
 const DB_PASSWORD = dbUrl.password;
-const BACKUP_FILE = path.join(__dirname, "tera_backup.sql"); // Absolute path
 
 const restoreDB = () => {
     console.log("🚀 Starting database restore...");
-    console.log(`📂 Looking for backup file at: ${BACKUP_FILE}`);
+    console.log(`📂 Using backup file: ${BACKUP_FILE}`);
 
     exec(
         `PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} -f ${BACKUP_FILE}`,
@@ -78,7 +76,9 @@ const restoreDB = () => {
     );
 };
 
-restoreDB();
+// Start Downloading and Restoring
+downloadFile();
+
 
 
 // Secret key for JWT
