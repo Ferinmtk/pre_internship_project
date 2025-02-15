@@ -6,9 +6,10 @@ const socketIo = require('socket.io');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { Client } = require('pg');
+const { Pool } = require('pg');
 require('dotenv').config();
 const path = require('path');
+
 
 const app = express();
 const server = http.createServer(app);
@@ -18,14 +19,15 @@ app.use(bodyParser.json());
 
 // PostgreSQL setup
 // PostgreSQL setup with SSL
-const client = new Client({
+const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
         rejectUnauthorized: false, // Allow SSL connection
     },
 });
+module.exports = pool;
 
-client.connect().catch(err => console.error('PostgreSQL connection error:', err));
+pool.connect().catch(err => console.error('PostgreSQL connection error:', err));
 
 
 // Secret key for JWT
@@ -60,7 +62,7 @@ app.get('/', (req, res) => {
 app.get('/customers', (req, res) => {
     const query = 'SELECT * FROM customers';
     
-    client.query(query)
+    pool.query(query)
       .then(result => {
         res.status(200).json({ customers: result.rows });
       })
@@ -73,7 +75,7 @@ app.get('/customers', (req, res) => {
 //for InVENTORY
 app.get('/inventory-data', async (req, res) => {
     try {
-      const stockOutage = await client.query(`
+      const stockOutage = await pool.query(`
         SELECT 
           product_name AS product,
           ROUND(SUM(quantity) / AVG(daily_sales), 2) AS months
@@ -96,7 +98,7 @@ app.get('/inventory-data', async (req, res) => {
         returnRate: 2.9 // Example value in percentage
       };
   
-      const inStock = await client.query(`
+      const inStock = await pool.query(`
         SELECT 
           product_name AS name,
           quantity AS inStock,
@@ -141,7 +143,7 @@ app.post('/add-customer', async (req, res) => {
         `;
         const values = [full_name, username, email, hashedPassword, is_active];
 
-        client.query(query, values)
+        pool.query(query, values)
             .then(result => {
                 res.status(201).json({ message: 'Customer added successfully', customer: result.rows[0] });
             })
@@ -168,7 +170,7 @@ app.put('/update-customer-status/:id', (req, res) => {
     `;
     const values = [isActive, id];
   
-    client.query(query, values)
+    pool.query(query, values)
       .then(result => {
         res.status(200).json({ message: 'Customer status updated successfully', customer: result.rows[0] });
       })
@@ -190,7 +192,7 @@ app.post('/create-account', async (req, res) => {
 
     try {
         // Check if the username or email already exists
-        const existingUser = await client.query('SELECT * FROM admins WHERE username = $1 OR email = $2', [newUsername, email]);
+        const existingUser = await pool.query('SELECT * FROM admins WHERE username = $1 OR email = $2', [newUsername, email]);
 
         if (existingUser.rows.length > 0) {
             return res.status(400).json({ message: 'Username or email already exists!' });
@@ -200,7 +202,7 @@ app.post('/create-account', async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
         // Insert the new admin into the database
-        await client.query(
+        await pool.query(
             'INSERT INTO admins (full_name, username, tera_id, email, password) VALUES ($1, $2, $3, $4, $5)',
             [fullName, newUsername, skep_id, email, hashedPassword]
         );
@@ -218,7 +220,7 @@ app.post('/create-customer-account', async (req, res) => {
 
     try {
         // Check if the username or email already exists
-        const existingCustomer = await client.query('SELECT * FROM customers WHERE username = $1 OR email = $2', [username, email]);
+        const existingCustomer = await pool.query('SELECT * FROM customers WHERE username = $1 OR email = $2', [username, email]);
 
         if (existingCustomer.rows.length > 0) {
             return res.status(400).json({ message: 'Username or email already exists!' });
@@ -228,7 +230,7 @@ app.post('/create-customer-account', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Insert the new customer into the database
-        await client.query(
+        await pool.query(
             'INSERT INTO customers (full_name, username, email, password, created_at, updated_at, is_active) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, true)',
             [fullName, username, email, hashedPassword]
         );
@@ -245,7 +247,7 @@ app.post('/create-customer-account', async (req, res) => {
 app.delete('/delete-customer/:id', async (req, res) => {
     const { id } = req.params;
     try {
-      await client.query('DELETE FROM customers WHERE id = $1', [id]);
+      await pool.query('DELETE FROM customers WHERE id = $1', [id]);
       res.json({ message: 'Customer deleted successfully' });
     } catch (error) {
       console.error('Error deleting customer:', error);
@@ -260,7 +262,7 @@ app.post('/login', async (req, res) => {
 
     try {
         // Check if the username exists
-        const userResult = await client.query('SELECT * FROM admins WHERE username = $1', [username]);
+        const userResult = await pool.query('SELECT * FROM admins WHERE username = $1', [username]);
 
         if (userResult.rows.length === 0) {
             return res.status(400).json({ message: 'Username or password is incorrect!' });
@@ -329,7 +331,7 @@ app.post('/customer-login', async (req, res) => {
 
 app.get("/get-sales-report", async (req, res) => {
     try {
-        const result = await client.query("SELECT * FROM sales"); // Adjust table name if needed
+        const result = await pool.query("SELECT * FROM sales"); // Adjust table name if needed
         res.json({ sales: result.rows });
     } catch (error) {
         console.error("Error fetching sales report:", error);
@@ -339,7 +341,7 @@ app.get("/get-sales-report", async (req, res) => {
 
 app.get("/get-product-report", async (req, res) => {
     try {
-        const result = await client.query("SELECT * FROM products"); // Adjust table name if needed
+        const result = await pool.query("SELECT * FROM products"); // Adjust table name if needed
         res.json({ products: result.rows });
     } catch (error) {
         console.error("Error fetching product report:", error);
@@ -356,7 +358,7 @@ app.get('/get-profit-report', async (req, res) => {
             FROM products
             ORDER BY profit DESC;
         `;
-        const result = await client.query(query);
+        const result = await pool.query(query);
         res.json({ profits: result.rows });
     } catch (error) {
         console.error('Error fetching profit report:', error);
@@ -374,7 +376,7 @@ app.get('/get-region-report', async (req, res) => {
             GROUP BY region, product_name, category
             ORDER BY region ASC;
         `;
-        const result = await client.query(query);
+        const result = await pool.query(query);
         res.json({ regions: result.rows });
     } catch (error) {
         console.error('Error fetching region report:', error);
@@ -393,7 +395,7 @@ app.get("/get-products", async (req, res) => {
             FROM products
             ORDER BY sales DESC
         `;
-        const result = await client.query(query);
+        const result = await pool.query(query);
         res.json({ products: result.rows });
     } catch (error) {
         console.error("Error fetching product data:", error);
@@ -412,7 +414,7 @@ app.use('/images', express.static(path.join(__dirname, 'images')));
 // Route to get all products for both dashboard & eCommerce site
 app.get('/products', async (req, res) => {
     try {
-        const result = await client.query('SELECT * FROM products ORDER BY id DESC');
+        const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
         res.status(200).json({ products: result.rows });
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -429,9 +431,9 @@ app.post('/add-product', (req, res) => {
     `;
     const values = [product_name, category, region, sales, profit, image_url];
 
-    client.query(query, values)
+    pool.query(query, values)
         .then(result => {
-            io.emit('product_added', result.rows[0]); // Notify all clients
+            io.emit('product_added', result.rows[0]); // Notify all pools
             res.status(201).json(result.rows[0]);
         })
         .catch(error => {
@@ -451,9 +453,9 @@ app.put('/update-product/:id', (req, res) => {
     `;
     const values = [product_name, category, region, sales, profit, image_url, id];
 
-    client.query(query, values)
+    pool.query(query, values)
         .then(result => {
-            io.emit('product_updated', result.rows[0]); // Notify all clients
+            io.emit('product_updated', result.rows[0]); // Notify all pools
             res.status(200).json(result.rows[0]);
         })
         .catch(error => {
@@ -468,9 +470,9 @@ app.delete('/delete-product/:id', (req, res) => {
     const query = 'DELETE FROM products WHERE id = $1 RETURNING *;';
     const values = [id];
 
-    client.query(query, values)
+    pool.query(query, values)
         .then(result => {
-            io.emit('product_deleted', result.rows[0]); // Notify all clients
+            io.emit('product_deleted', result.rows[0]); // Notify all pools
             res.status(200).json(result.rows[0]);
         })
         .catch(error => {
@@ -492,7 +494,7 @@ app.post('/purchase', async (req, res) => {
         `;
         const values = [quantitySold, productId];
 
-        const result = await client.query(query, values);
+        const result = await pool.query(query, values);
 
         if (result.rows.length > 0) {
             // Emit real-time update to dashboard
@@ -531,9 +533,9 @@ io.on('connection', (socket) => {
             `;
             const values = [productName, category, region, sales, profit, imageUrl];
 
-            const result = await client.query(query, values);
+            const result = await pool.query(query, values);
 
-            io.emit('product_added', result.rows[0]); // Broadcast to all clients
+            io.emit('product_added', result.rows[0]); // Broadcast to all pools
         } catch (error) {
             console.error('Error adding product:', error);
             socket.emit('error', { message: 'Failed to add product' });
@@ -557,7 +559,7 @@ io.on('connection', (socket) => {
             `;
             const values = [productName, category, region, sales, profit, imageUrl, id];
 
-            const result = await client.query(query, values);
+            const result = await pool.query(query, values);
             if (result.rows.length > 0) {
                 io.emit('product_updated', result.rows[0]); // Broadcast update
             } else {
@@ -584,9 +586,9 @@ io.on('connection', (socket) => {
             `;
             const values = [quantitySold, productId];
 
-            const result = await client.query(query, values);
+            const result = await pool.query(query, values);
             if (result.rows.length > 0) {
-                io.emit('sale_made', result.rows[0]); // Notify all clients
+                io.emit('sale_made', result.rows[0]); // Notify all pools
             } else {
                 socket.emit('error', { message: 'Product not found' });
             }
@@ -597,7 +599,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log('Client disconnected');
+        console.log('pool disconnected');
     });
 });
 
