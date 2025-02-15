@@ -1,4 +1,4 @@
-console.log('Server is starting...');
+console.log('🚀 Server is starting...');
 
 const express = require('express');
 const http = require('http');
@@ -9,18 +9,13 @@ const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 require('dotenv').config();
 const path = require('path');
-
+const { exec } = require("child_process");
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
 app.use(bodyParser.json());
-
-require("dotenv").config();
-const { exec } = require("child_process");
-const path = require("path");
-const { Pool } = require("pg");
 
 // PostgreSQL setup with SSL
 const pool = new Pool({
@@ -34,9 +29,9 @@ pool.connect()
     .then(() => console.log("✅ PostgreSQL connected successfully!"))
     .catch(err => console.error("❌ PostgreSQL connection error:", err));
 
-// Downloading the Database Backup File
+// Database Backup File
 const FILE_URL = "https://drive.google.com/uc?export=download&id=17qjkjQBS_lfu3Zkyc4ErkRfqF-ZnZ7e4";
-const BACKUP_FILE = path.join(__dirname, "tera_backup.sql"); // Absolute path
+const BACKUP_FILE = path.join(__dirname, "tera_backup.sql"); 
 
 const downloadFile = () => {
     console.log("📥 Downloading backup file...");
@@ -47,7 +42,7 @@ const downloadFile = () => {
             return;
         }
         console.log("✅ Backup file downloaded successfully!");
-        restoreDB(); // Restore the database after downloading
+        restoreDB();
     });
 };
 
@@ -55,7 +50,7 @@ const downloadFile = () => {
 const dbUrl = new URL(process.env.DATABASE_URL);
 const DB_HOST = dbUrl.hostname;
 const DB_USER = dbUrl.username;
-const DB_NAME = dbUrl.pathname.substring(1); // Remove leading '/'
+const DB_NAME = dbUrl.pathname.substring(1); 
 const DB_PASSWORD = dbUrl.password;
 
 const restoreDB = () => {
@@ -76,9 +71,13 @@ const restoreDB = () => {
     );
 };
 
-// Start Downloading and Restoring
-downloadFile();
+// 🟢 Start Express Server After Database Restore
+server.listen(3000, () => {
+    console.log('✅ Server is running on port 3000');
+});
 
+// 🟢 Run Backup Restoration in Background
+downloadFile();
 
 
 // Secret key for JWT
