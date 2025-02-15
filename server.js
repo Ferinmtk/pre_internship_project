@@ -53,9 +53,16 @@ const DB_USER = dbUrl.username;
 const DB_NAME = dbUrl.pathname.substring(1); 
 const DB_PASSWORD = dbUrl.password;
 
+const fs = require("fs");
+
 const restoreDB = () => {
     console.log("🚀 Starting database restore...");
     console.log(`📂 Using backup file: ${BACKUP_FILE}`);
+
+    if (!fs.existsSync(BACKUP_FILE)) {
+        console.error("❌ Backup file not found! Ensure it's downloaded correctly.");
+        return;
+    }
 
     exec(
         `PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} -f ${BACKUP_FILE}`,
@@ -70,6 +77,7 @@ const restoreDB = () => {
         }
     );
 };
+
 
 
 // 🟢 Run Backup Restoration in Background
