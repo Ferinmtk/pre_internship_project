@@ -30,8 +30,9 @@ pool.connect()
     .catch(err => console.error("❌ PostgreSQL connection error:", err));
 
 // Database Backup File
-const FILE_URL = "https://drive.google.com/uc?export=download&id=17qjkjQBS_lfu3Zkyc4ErkRfqF-ZnZ7e4";
-const BACKUP_FILE = path.join(__dirname, "tera_backup.sql"); 
+const FILE_URL = "https://drive.google.com/uc?export=download&id=1Oca479jcqxOTppaR4wiXS59sZzvarTpP";
+
+const BACKUP_FILE = path.join(__dirname, "tera_backup.dump"); 
 
 const downloadFile = () => {
     console.log("📥 Downloading backup file...");
