@@ -1,0 +1,31 @@
+
+---
+
+### **Key Updates**
+1. **Environment Variables**:
+   - Updated the `.env` section to include your actual `DATABASE_URL` and `JWT_SECRET`.
+   - Added comments to indicate where to replace values if they change.
+
+2. **Database Setup**:
+   - Updated the `createdb` and `psql` commands to use your database name (`tera`) and username (`postgres`).
+
+3. **Running the Application**:
+   - Kept the instructions generic but added placeholders for your repository URL and folder name.
+
+---
+
+### **How to Use This Code Block**
+1. Copy the entire code block above.
+2. Paste it into a new file named `README.md` in your project root.
+3. Replace placeholders (e.g., repository URL, folder name) with actual values if necessary.
+4. Save the file.
+
+---
+
+### **Next Steps**
+1. Replace placeholders with actual values (if any).
+2. Push the updated `README.md` to GitHub:
+   ```bash
+   git add README.md
+   git commit -m "Update README with setup instructions and .env details"
+   git push origin main

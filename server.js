@@ -17,13 +17,23 @@ const io = socketIo(server);
 app.use(bodyParser.json());
 
 // PostgreSQL setup
+// PostgreSQL setup with SSL
 const client = new Client({
     connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false, // Allow SSL connection
+    },
 });
-client.connect();
+
+client.connect().catch(err => console.error('PostgreSQL connection error:', err));
+
 
 // Secret key for JWT
 const JWT_SECRET = process.env.JWT_SECRET;
+
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+  });
 
 // Middleware for validating JWT token (LOGIN SYSTEM UNCHANGED)
 const validateToken = (req, res, next) => {
