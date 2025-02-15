@@ -64,6 +64,8 @@ const restoreDB = () => {
         return;
     }
 
+    console.log("✅ Backup file exists. Proceeding with restore...");
+
     exec(
         `PGPASSWORD=${DB_PASSWORD} psql -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} -f ${BACKUP_FILE}`,
         (error, stdout, stderr) => {
@@ -77,6 +79,7 @@ const restoreDB = () => {
         }
     );
 };
+
 
 
 
