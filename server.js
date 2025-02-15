@@ -71,10 +71,6 @@ const restoreDB = () => {
     );
 };
 
-// 🟢 Start Express Server After Database Restore
-server.listen(3000, () => {
-    console.log('✅ Server is running on port 3000');
-});
 
 // 🟢 Run Backup Restoration in Background
 downloadFile();
