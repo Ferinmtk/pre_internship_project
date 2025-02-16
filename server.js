@@ -20,16 +20,16 @@ app.use(bodyParser.json());
 // PostgreSQL setup with SSL
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: {
+    /*ssl: {
         rejectUnauthorized: false, // Allow SSL connection
-    },
+    },*/
 });
-
+/*
 pool.connect()
     .then(() => console.log("✅ PostgreSQL connected successfully!"))
     .catch(err => console.error("❌ PostgreSQL connection error:", err));
 
-// Database Backup File
+/// Database Backup File
 const FILE_URL = "https://drive.google.com/uc?export=download&id=1Oca479jcqxOTppaR4wiXS59sZzvarTpP";
 
 const BACKUP_FILE = path.join(__dirname, "tera_backup.dump"); 
@@ -81,12 +81,11 @@ const restoreDB = () => {
     );
 };
 
-
-
-
-
 // 🟢 Run Backup Restoration in Background
 downloadFile();
+
+*/
+
 
 
 // Secret key for JWT
@@ -543,29 +542,66 @@ app.delete('/delete-product/:id', (req, res) => {
 
 // Route for eCommerce to update sales after a purchase
 app.post('/purchase', async (req, res) => {
+    const client = await pool.connect(); // Use client instead of pool directly
     try {
-        const { productId, quantitySold } = req.body;
+        let { productId, quantitySold } = req.body;
 
-        const query = `
+        quantitySold = parseInt(quantitySold, 10); // Ensure it's an integer
+
+        await client.query('BEGIN'); // Start transaction
+
+        // Get product details
+        const productQuery = `SELECT * FROM products WHERE id = $1`;
+        const productResult = await client.query(productQuery, [productId]);
+
+        if (productResult.rows.length === 0) {
+            throw new Error('Product not found');
+        }
+        const product = productResult.rows[0];
+
+        // Update product sales
+        const updateProductQuery = `
             UPDATE products 
             SET sales = sales + $1 
-            WHERE id = $2 RETURNING *;
+            WHERE id = $2 
+            RETURNING *;
         `;
-        const values = [quantitySold, productId];
+        const productValues = [quantitySold, productId];
+        const updatedProduct = await client.query(updateProductQuery, productValues);
 
-        const result = await pool.query(query, values);
+        // Calculate total sale amount and profit
+        const saleAmount = Number(product.unit_price) * quantitySold; // Use unit_price
+        const profitAmount = Number(product.profit) * quantitySold; // Use profit per unit
 
-        if (result.rows.length > 0) {
-            // Emit real-time update to dashboard
-            io.emit('sale_made', result.rows[0]);
+        // Insert sale record
+        await client.query(
+            'INSERT INTO sales (date, product, amount) VALUES (CURRENT_DATE, $1, $2)',
+            [product.product_name, saleAmount]
+        );
 
-            res.status(200).json({ message: 'Purchase recorded', product: result.rows[0] });
-        } else {
-            res.status(404).json({ message: 'Product not found' });
-        }
+        // Update bank summary
+        const bankQuery = `
+            INSERT INTO bank_summary (date, total_sales, total_profit, total_purchases, balance)
+            VALUES (CURRENT_DATE, $1, $2, 0, $1 - 0)
+            ON CONFLICT (date) DO UPDATE
+            SET total_sales = bank_summary.total_sales + $1,
+                total_profit = bank_summary.total_profit + $2,
+                balance = (bank_summary.total_sales + $1) - bank_summary.total_purchases;
+        `;
+        await client.query(bankQuery, [saleAmount, profitAmount]);
+
+        await client.query('COMMIT'); // Commit transaction
+
+        // Emit real-time update to dashboard
+        io.emit('sale_made', updatedProduct.rows[0]);
+
+        res.status(200).json({ message: 'Purchase recorded', product: updatedProduct.rows[0] });
     } catch (error) {
+        await client.query('ROLLBACK'); // Rollback on error
         console.error('Error recording sale:', error);
         res.status(500).json({ message: 'Failed to record sale' });
+    } finally {
+        client.release(); // Correctly release the connection
     }
 });
 
@@ -673,7 +709,7 @@ app.use(express.static(path.join(__dirname, 'styles')));
 app.use(express.static(path.join(__dirname)));
 
 // Start the server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

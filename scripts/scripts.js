@@ -878,3 +878,32 @@ function deleteProduct(productId) {
 
 
 
+function fetchBankSummary() {
+  fetch('/bank-summary')
+      .then(response => response.json())
+      .then(data => {
+          const tbody = document.getElementById('bank-tbody');
+          tbody.innerHTML = '';
+
+          data.forEach(row => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                  <td>${row.date}</td>
+                  <td>$${row.total_sales.toFixed(2)}</td>
+                  <td>$${row.total_profit.toFixed(2)}</td>
+                  <td>$${row.total_purchases.toFixed(2)}</td>
+                  <td>$${row.balance.toFixed(2)}</td>
+              `;
+              tbody.appendChild(tr);
+          });
+      })
+      .catch(error => console.error('Error fetching bank summary:', error));
+}
+
+// Fetch bank summary on page load
+fetchBankSummary();
+
+// Update summary in real time
+socket.on('sale_made', () => {
+  fetchBankSummary();
+});
