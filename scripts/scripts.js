@@ -205,65 +205,8 @@ function loadContent(page) {
             </tbody>
         </table>
 
-        <!-- Add Product Modal -->
-        <div id="add-product-modal" class="modal">
-            <div class="modal-content">
-                <span class="close" onclick="closeModal('add-product-modal')">&times;</span>
-                <h2>Add New Product</h2>
-                <form id="add-product-form">
-                    <label for="product-name">Product Name:</label>
-                    <input type="text" id="product-name" name="product-name" required>
+ 
 
-                    <label for="category">Category:</label>
-                    <input type="text" id="category" name="category" required>
-
-                    <label for="region">Region:</label>
-                    <input type="text" id="region" name="region" required>
-
-                    <label for="sales">Sales:</label>
-                    <input type="number" id="sales" name="sales" required>
-
-                    <label for="profit">Profit:</label>
-                    <input type="number" id="profit" name="profit" required>
-
-                    <label for="image-url">Image URL:</label>
-                    <input type="text" id="image-url" name="image-url" required>
-
-                    <button type="submit" class="btn-primary">Add Product</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Edit Product Modal -->
-        <div id="edit-product-modal" class="modal">
-            <div class="modal-content">
-                <span class="close" onclick="closeModal('edit-product-modal')">&times;</span>
-                <h2>Edit Product</h2>
-                <form id="edit-product-form">
-                    <input type="hidden" id="edit-product-id" name="product-id">
-
-                    <label for="edit-product-name">Product Name:</label>
-                    <input type="text" id="edit-product-name" name="product-name" required>
-
-                    <label for="edit-category">Category:</label>
-                    <input type="text" id="edit-category" name="category" required>
-
-                    <label for="edit-region">Region:</label>
-                    <input type="text" id="edit-region" name="region" required>
-
-                    <label for="edit-sales">Sales:</label>
-                    <input type="number" id="edit-sales" name="sales" required>
-
-                    <label for="edit-profit">Profit:</label>
-                    <input type="number" id="edit-profit" name="profit" required>
-
-                    <label for="edit-image-url">Image URL:</label>
-                    <input type="text" id="edit-image-url" name="image-url" required>
-
-                    <button type="submit" class="btn-primary">Save Changes</button>
-                </form>
-            </div>
-        </div>
     `;
 
     // Fetch and display products
@@ -907,3 +850,33 @@ fetchBankSummary();
 socket.on('sale_made', () => {
   fetchBankSummary();
 });
+
+
+
+function toggleProfileModal() {
+  const modal = document.getElementById('profileModal');
+  modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+
+  // Fetch and populate user details from API
+  fetch('/create-account') // Adjust API route if needed
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('profileFullName').textContent = data.fullName;
+      document.getElementById('profileUsername').textContent = data.newUsername;
+      document.getElementById('profileEmail').textContent = data.email;
+      document.getElementById('profileSkepId').textContent = data.skep_id;
+    })
+    .catch(error => console.error('Error fetching profile:', error));
+}
+
+function redirectToLogin() {
+  window.location.href = 'login.html';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  const modal = document.getElementById('profileModal');
+  if (event.target === modal) {
+    toggleProfileModal();
+  }
+};

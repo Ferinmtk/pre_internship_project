@@ -319,7 +319,6 @@ app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        // Check if the username exists
         const userResult = await pool.query('SELECT * FROM admins WHERE username = $1', [username]);
 
         if (userResult.rows.length === 0) {
@@ -327,24 +326,22 @@ app.post('/login', async (req, res) => {
         }
 
         const user = userResult.rows[0];
-
-        // Compare password with the stored hash
         const isMatch = await bcrypt.compare(password, user.password);
 
         if (!isMatch) {
             return res.status(400).json({ message: 'Username or password is incorrect!' });
         }
 
-        // Generate JWT token
         const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
+        console.log('Generated Token:', token); // Debugging
 
-        // Send token to the frontend
         res.status(200).json({ message: 'Login successful!', token });
     } catch (error) {
-        console.error(error);
+        console.error('Error during login:', error);
         res.status(500).json({ message: 'Server error!' });
     }
 });
+
 
 // Route for customer login
 app.post('/customer-login', async (req, res) => {
@@ -713,3 +710,5 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
+

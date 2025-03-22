@@ -26,6 +26,7 @@
           <span class="material-icons-outlined search-icon" onclick="toggleSearchBox()">search</span>
           <input type="text" id="search-box" class="hidden" placeholder="Search...">
         </div>
+        
       
         <div class="header-right">
           <span class="material-icons-outlined">notifications</span>
@@ -85,6 +86,7 @@
           </li>
         </ul>
       </aside>
+      
       <!-- End Sidebar -->
 
       <!-- Main - Dashboard Section is now the default content -->
@@ -93,6 +95,21 @@
         <h2>Welcome to Tera Enterprise Dashboard</h2>
 
         <p>For Ecommerce page, <a href="index.html" target="_blank">click here</a>.</p>
+
+
+
+        <!-- Profile Modal -->
+<div id="profileModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="toggleProfileModal()">&times;</span>
+    <h2>Admin Profile</h2>
+    <p><strong>Full Name:</strong> <span id="profileFullName"></span></p>
+    <p><strong>Username:</strong> <span id="profileUsername"></span></p>
+    <p><strong>Email:</strong> <span id="profileEmail"></span></p>
+    <p><strong>Skep ID:</strong> <span id="profileSkepId"></span></p>
+    <button class="logout-btn" onclick="redirectToLogin()">Logout</button>
+  </div>
+</div>
 
       
 

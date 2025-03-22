@@ -29,32 +29,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
 
-    // Handle admin login form submission
-    loginForm.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-    
-        try {
-            const response = await fetch('/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password }),
-            });
-    
-            const data = await response.json();
-            console.log("Response data:", data); // Debugging
-    
-            if (response.ok && data.token) { 
-                localStorage.setItem('token', data.token);
-                window.location.href = '/admin.html'; // Redirect only if login is successful
-            } else {
-                alert(data.message || 'Login failed!'); // Show alert ONLY if login fails
-            }
-        } catch (error) {
-            alert('Server error. Try again later.');
+// Handle admin login form submission
+loginForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    try {
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+        });
+
+        const data = await response.json();
+        console.log("Response data:", data); // Debugging
+
+        if (response.ok && data.token) { 
+            localStorage.setItem('token', data.token);
+            window.location.href = '/admin.html'; // Redirect only if login is successful
+        } else {
+            alert(data.message || 'Login failed!'); // Show alert ONLY if login fails
         }
-    });
+    } catch (error) {
+        console.error('Error:', error); // Added for debugging
+        alert('Server error. Try again later.');
+    }
+});
+
     
     
 
@@ -159,3 +161,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+
+
+
+
