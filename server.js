@@ -490,11 +490,9 @@ app.get("/get-products", async (req, res) => {
 
 
 
-//fetching images
-
+// Middleware to parse JSON body
+app.use(express.json());
 app.use('/images', express.static(path.join(__dirname, 'images')));
-
-
 
 // Route to get all products for both dashboard & eCommerce site
 app.get('/products', async (req, res) => {
@@ -502,35 +500,45 @@ app.get('/products', async (req, res) => {
         const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
         res.status(200).json({ products: result.rows });
     } catch (error) {
-        console.error('Error fetching products:', error);
-        res.status(500).json({ message: 'Error fetching products' });
+        console.error('Error fetching products:', error.message); // More concise logging
+        res.status(500).json({ error: 'Failed to fetch products' });
     }
 });
 
-// Route to add a new product (dashboard & eCommerce)
-app.post('/add-product', (req, res) => {
+// Route to add a new product
+app.post('/add-product', async (req, res) => {
     const { product_name, category, region, sales, profit, image_url } = req.body;
+
+    if (!product_name || !category || !image_url) {
+        return res.status(400).json({ error: 'Missing required fields' }); // Basic validation
+    }
+
     const query = `
         INSERT INTO products (product_name, category, region, sales, profit, image_url)
         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
     `;
     const values = [product_name, category, region, sales, profit, image_url];
 
-    pool.query(query, values)
-        .then(result => {
-            io.emit('product_added', result.rows[0]); // Notify all pools
-            res.status(201).json(result.rows[0]);
-        })
-        .catch(error => {
-            console.error('Error adding product:', error);
-            res.status(500).json({ error: 'Failed to add product' });
-        });
+    try {
+        const result = await pool.query(query, values);
+        console.log('Product Added:', result.rows[0]); // Debug logging
+        io.emit('product_added', result.rows[0]); // Notify all clients
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error adding product:', error.message);
+        res.status(500).json({ error: 'Failed to add product' });
+    }
 });
 
 // Route to update product details
-app.put('/update-product/:id', (req, res) => {
+app.put('/update-product/:id', async (req, res) => {
     const { id } = req.params;
     const { product_name, category, region, sales, profit, image_url } = req.body;
+
+    if (!id) {
+        return res.status(400).json({ error: 'Product ID is required' }); // Validate ID presence
+    }
+
     const query = `
         UPDATE products
         SET product_name = $1, category = $2, region = $3, sales = $4, profit = $5, image_url = $6
@@ -538,16 +546,20 @@ app.put('/update-product/:id', (req, res) => {
     `;
     const values = [product_name, category, region, sales, profit, image_url, id];
 
-    pool.query(query, values)
-        .then(result => {
-            io.emit('product_updated', result.rows[0]); // Notify all pools
-            res.status(200).json(result.rows[0]);
-        })
-        .catch(error => {
-            console.error('Error updating product:', error);
-            res.status(500).json({ error: 'Failed to update product' });
-        });
+    try {
+        const result = await pool.query(query, values);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Product not found' }); // Handle non-existent ID
+        }
+        console.log('Product Updated:', result.rows[0]); // Debug logging
+        io.emit('product_updated', result.rows[0]); // Notify all clients
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error updating product:', error.message);
+        res.status(500).json({ error: 'Failed to update product' });
+    }
 });
+
 
 /*Delete Product*/
 app.delete('/delete-product/:id', (req, res) => {

@@ -194,6 +194,7 @@ function loadContent(page) {
                     <th>Product Name</th>
                     <th>Category</th>
                     <th>Region</th>
+                    <th>Unit Price</th>
                     <th>Sales</th>
                     <th>Profit</th>
                     <th>Image URL</th>
@@ -204,9 +205,6 @@ function loadContent(page) {
                 <!-- Product rows will be dynamically inserted here -->
             </tbody>
         </table>
-
- 
-
     `;
 
     // Fetch and display products
@@ -639,119 +637,10 @@ function fetchProducts() {
           const productsTbody = document.getElementById('products-tbody');
           productsTbody.innerHTML = ''; // Clear existing rows
 
-          data.products.forEach(product => {
-              const row = document.createElement('tr');
-              row.innerHTML = `
-                  <td>${product.id}</td>
-                  <td>${product.product_name}</td>
-                  <td>${product.category}</td>
-                  <td>${product.region}</td>
-                  <td>${product.sales}</td>
-                  <td>$${product.profit}</td>
-                  <td><img src="${product.image_url}" alt="${product.product_name}" width="50"></td>
-                  <td>
-                      <button onclick="openEditModal(${product.id})" class="btn-edit">Edit</button>
-                      <button onclick="deleteProduct(${product.id})" class="btn-delete">Delete</button>
-                  </td>
-              `;
-              productsTbody.appendChild(row);
-          });
-      })
-      .catch(error => console.error('Error fetching products:', error));
-}
-
-
-function addProduct(event) {
-  event.preventDefault();
-
-  const product = {
-      product_name: document.getElementById('product-name').value,
-      category: document.getElementById('category').value,
-      region: document.getElementById('region').value,
-      sales: parseInt(document.getElementById('sales').value),
-      profit: parseFloat(document.getElementById('profit').value),
-      image_url: document.getElementById('image-url').value
-  };
-
-  fetch('/add-product', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(product)
-  })
-  .then(response => response.json())
-  .then(data => {
-      closeModal('add-product-modal');
-      fetchProducts(); // Refresh the product list
-  })
-  .catch(error => console.error('Error adding product:', error));
-}
-
-function openEditModal(productId) {
-  fetch(`/products/${productId}`)
-      .then(response => response.json())
-      .then(product => {
-          document.getElementById('edit-product-id').value = product.id;
-          document.getElementById('edit-product-name').value = product.product_name;
-          document.getElementById('edit-category').value = product.category;
-          document.getElementById('edit-region').value = product.region;
-          document.getElementById('edit-sales').value = product.sales;
-          document.getElementById('edit-profit').value = product.profit;
-          document.getElementById('edit-image-url').value = product.image_url;
-
-          openModal('edit-product-modal');
-      })
-      .catch(error => console.error('Error fetching product:', error));
-}
-
-function editProduct(event) {
-  event.preventDefault();
-
-  const product = {
-      id: document.getElementById('edit-product-id').value,
-      product_name: document.getElementById('edit-product-name').value,
-      category: document.getElementById('edit-category').value,
-      region: document.getElementById('edit-region').value,
-      sales: parseInt(document.getElementById('edit-sales').value),
-      profit: parseFloat(document.getElementById('edit-profit').value),
-      image_url: document.getElementById('edit-image-url').value
-  };
-
-  fetch(`/update-product/${product.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(product)
-  })
-  .then(response => response.json())
-  .then(data => {
-      closeModal('edit-product-modal');
-      fetchProducts(); // Refresh the product list
-  })
-  .catch(error => console.error('Error updating product:', error));
-}
-
-
-
-function deleteProduct(productId) {
-  if (confirm('Are you sure you want to delete this product?')) {
-      fetch(`/delete-product/${productId}`, {
-          method: 'DELETE'
-      })
-      .then(response => response.json())
-      .then(data => {
-          fetchProducts(); // Refresh the product list
-      })
-      .catch(error => console.error('Error deleting product:', error));
-  }
-}
-
-
-
-function fetchProducts() {
-  fetch('/products')
-      .then(response => response.json())
-      .then(data => {
-          const productsTbody = document.getElementById('products-tbody');
-          productsTbody.innerHTML = ''; // Clear existing rows
+          if (data.products.length === 0) {
+              productsTbody.innerHTML = '<tr><td colspan="8">No products available.</td></tr>';
+              return;
+          }
 
           data.products.forEach(product => {
               const row = document.createElement('tr');
@@ -762,7 +651,13 @@ function fetchProducts() {
                   <td>${product.region}</td>
                   <td>${product.sales}</td>
                   <td>$${product.profit}</td>
-                  <td><img src="${product.image_url}" alt="${product.product_name}" width="50"></td>
+                  <td>
+                      ${
+                          product.image_url
+                              ? `<img src="${product.image_url}" alt="${product.product_name}" width="50">`
+                              : 'No Image Available'
+                      }
+                  </td>
                   <td>
                       <button onclick="openEditModal(${product.id})" class="btn-edit">Edit</button>
                       <button onclick="deleteProduct(${product.id})" class="btn-delete">Delete</button>
@@ -771,7 +666,7 @@ function fetchProducts() {
               productsTbody.appendChild(row);
           });
       })
-      .catch(error => console.error('Error fetching products:', error));
+      .catch(error => handleError(error, 'fetching products'));
 }
 
 function addProduct(event) {
@@ -781,7 +676,7 @@ function addProduct(event) {
       product_name: document.getElementById('product-name').value,
       category: document.getElementById('category').value,
       region: document.getElementById('region').value,
-      sales: parseInt(document.getElementById('sales').value),
+      sales: parseInt(document.getElementById('sales').value, 10),
       profit: parseFloat(document.getElementById('profit').value),
       image_url: document.getElementById('image-url').value
   };
@@ -791,18 +686,19 @@ function addProduct(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(product)
   })
-  .then(response => response.json())
-  .then(data => {
-      closeModal('add-product-modal');
-      fetchProducts(); // Refresh the product list
-  })
-  .catch(error => console.error('Error adding product:', error));
+      .then(response => response.json())
+      .then(() => {
+          closeModal('add-product-modal');
+          fetchProducts(); // Refresh the product list
+      })
+      .catch(error => handleError(error, 'adding product'));
 }
 
 function openEditModal(productId) {
   fetch(`/products/${productId}`)
       .then(response => response.json())
       .then(product => {
+          // Populate fields in the edit modal
           document.getElementById('edit-product-id').value = product.id;
           document.getElementById('edit-product-name').value = product.product_name;
           document.getElementById('edit-category').value = product.category;
@@ -813,8 +709,12 @@ function openEditModal(productId) {
 
           openModal('edit-product-modal');
       })
-      .catch(error => console.error('Error fetching product:', error));
+      .catch(error => {
+          console.error('Error fetching product:', error);
+      });
 }
+
+console.log('Fetched product for editing:', product);
 
 function editProduct(event) {
   event.preventDefault();
@@ -824,7 +724,7 @@ function editProduct(event) {
       product_name: document.getElementById('edit-product-name').value,
       category: document.getElementById('edit-category').value,
       region: document.getElementById('edit-region').value,
-      sales: parseInt(document.getElementById('edit-sales').value),
+      sales: parseInt(document.getElementById('edit-sales').value, 10),
       profit: parseFloat(document.getElementById('edit-profit').value),
       image_url: document.getElementById('edit-image-url').value
   };
@@ -834,12 +734,11 @@ function editProduct(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(product)
   })
-  .then(response => response.json())
-  .then(data => {
-      closeModal('edit-product-modal');
-      fetchProducts(); // Refresh the product list
-  })
-  .catch(error => console.error('Error updating product:', error));
+      .then(() => {
+          closeModal('edit-product-modal');
+          fetchProducts(); // Refresh the product list
+      })
+      .catch(error => handleError(error, 'updating product'));
 }
 
 function deleteProduct(productId) {
@@ -847,13 +746,24 @@ function deleteProduct(productId) {
       fetch(`/delete-product/${productId}`, {
           method: 'DELETE'
       })
-      .then(response => response.json())
-      .then(data => {
-          fetchProducts(); // Refresh the product list
-      })
-      .catch(error => console.error('Error deleting product:', error));
+          .then(() => {
+              fetchProducts(); // Refresh the product list
+          })
+          .catch(error => handleError(error, 'deleting product'));
   }
 }
+
+function handleError(error, context = '') {
+  console.error(`Error ${context}:`, error);
+  alert(`An error occurred ${context}. Please try again.`);
+}
+
+
+
+
+
+
+
 
 
 
