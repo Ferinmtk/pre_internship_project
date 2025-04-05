@@ -137,63 +137,78 @@ app.get('/customers', (req, res) => {
 //for InVENTORY
 app.get('/inventory-data', async (req, res) => {
     try {
-      const stockOutage = await pool.query(`
-        SELECT 
-          product_name AS product,
-          ROUND(SUM(quantity) / AVG(daily_sales), 2) AS months
-        FROM inventory
-        GROUP BY product_name
-      `);
-  
-      const stockCheck = {
-        daysSinceLastCheck: 42, // Example value
-        accuracy: 99.1 // Example value
-      };
-  
-      const warehouse = {
-        utilization: 81, // Example value
-        stockValue: 4.25 // Example value in millions
-      };
-  
-      const returns = {
-        toBeProcessed: 43, // Example value
-        returnRate: 2.9 // Example value in percentage
-      };
-  
-      const inStock = await pool.query(`
-        SELECT 
-          product_name AS name,
-          quantity AS inStock,
-          AVG(daily_sales) AS avg30DayOrders,
-          unit_price AS unitPrice
-        FROM inventory
-        GROUP BY product_name, quantity, unit_price
-      `);
-  
-      // Calculate totals from inStock data
-      const totals = {
-        totalInStock: inStock.rows.reduce((sum, row) => sum + Number(row.inStock), 0),
-        totalAvg30DayOrders: inStock.rows.reduce((sum, row) => sum + parseFloat(row.avg30DayOrders), 0),
-        totalStockValue: inStock.rows.reduce((sum, row) => 
-          sum + (Number(row.inStock) * parseFloat(row.unitPrice)), 0).toFixed(2)
-      };
-  
-      // Send the complete response
-      res.json({
-        stockOutage: stockOutage.rows,
-        stockCheck,
-        warehouse,
-        returns,
-        inStock: inStock.rows,
-        totals // Include the totals object in the response
-      });
-  
+        // Fetch stock outage data
+        const stockOutage = await pool.query(`
+            SELECT 
+                product_name AS product,
+                ROUND(SUM(quantity) / AVG(daily_sales), 2) AS months
+            FROM inventory
+            GROUP BY product_name
+        `);
+
+        // Example stock check data
+        const stockCheck = {
+            daysSinceLastCheck: 42, // Example value
+            accuracy: 99.1 // Example value
+        };
+
+        // Example warehouse data
+        const warehouse = {
+            utilization: 81, // Example value
+            stockValue: 4.25 // Example value in millions
+        };
+
+        // Example returns data
+        const returns = {
+            toBeProcessed: 43, // Example value
+            returnRate: 2.9 // Example value in percentage
+        };
+
+        // Fetch in-stock data
+        const inStock = await pool.query(`
+            SELECT 
+                product_name AS name,
+                quantity AS inStock,
+                AVG(daily_sales) AS avg30DayOrders,
+                unit_price AS unitPrice
+            FROM inventory
+            GROUP BY product_name, quantity, unit_price
+        `);
+
+        // Log inStock rows for debugging
+        console.log('In Stock Rows:', inStock.rows);
+
+        const totals = {
+            // Ensure inStock is treated as a valid number
+            totalInStock: inStock.rows.reduce((sum, row) => sum + Number(row.instock || 0), 0),
+            
+            // Ensure avg30DayOrders is parsed as a float
+            totalAvg30DayOrders: inStock.rows.reduce((sum, row) => sum + parseFloat(row.avg30dayorders || 0), 0),
+            
+            // Multiply inStock and unitPrice, ensuring both are valid numbers
+            totalStockValue: inStock.rows.reduce((sum, row) => 
+              sum + (Number(row.instock || 0) * parseFloat(row.unitprice || 0)), 0).toFixed(2)
+          };
+          
+          // Debugging logs
+          console.log('Calculated Totals:', totals);
+          
+        // Send the complete response
+        res.json({
+            stockOutage: stockOutage.rows,
+            stockCheck,
+            warehouse,
+            returns,
+            inStock: inStock.rows,
+            totals // Include totals in the response
+        });
+
     } catch (error) {
-      console.error('Error fetching inventory data:', error);
-      res.status(500).json({ message: 'Error fetching inventory data' });
+        console.error('Error fetching inventory data:', error);
+        res.status(500).json({ message: 'Error fetching inventory data' });
     }
-  });
-  
+});
+
   
 
 
