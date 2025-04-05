@@ -170,13 +170,24 @@ app.get('/inventory-data', async (req, res) => {
         GROUP BY product_name, quantity, unit_price
       `);
   
+      // Calculate totals from inStock data
+      const totals = {
+        totalInStock: inStock.rows.reduce((sum, row) => sum + Number(row.inStock), 0),
+        totalAvg30DayOrders: inStock.rows.reduce((sum, row) => sum + parseFloat(row.avg30DayOrders), 0),
+        totalStockValue: inStock.rows.reduce((sum, row) => 
+          sum + (Number(row.inStock) * parseFloat(row.unitPrice)), 0).toFixed(2)
+      };
+  
+      // Send the complete response
       res.json({
         stockOutage: stockOutage.rows,
         stockCheck,
         warehouse,
         returns,
-        inStock: inStock.rows
+        inStock: inStock.rows,
+        totals // Include the totals object in the response
       });
+  
     } catch (error) {
       console.error('Error fetching inventory data:', error);
       res.status(500).json({ message: 'Error fetching inventory data' });
