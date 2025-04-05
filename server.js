@@ -20,6 +20,10 @@ app.use(bodyParser.json());
 // PostgreSQL setup with SSL
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
+    max: 10, // Maximum number of clients in the pool
+    idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
+    connectionTimeoutMillis: 2000, // Timeout for new connections
+    
     /*ssl: {
         rejectUnauthorized: false, // Allow SSL connection
     },*/
@@ -567,8 +571,12 @@ app.post('/purchase', async (req, res) => {
         const updatedProduct = await client.query(updateProductQuery, productValues);
 
         // Calculate total sale amount and profit
-        const saleAmount = Number(product.unit_price) * quantitySold; // Use unit_price
-        const profitAmount = Number(product.profit) * quantitySold; // Use profit per unit
+        const saleAmount = parseFloat((Number(product.unit_price) * quantitySold).toFixed(2));
+        const profitAmount = parseFloat((Number(product.profit) * quantitySold).toFixed(2));
+
+        console.log(typeof saleAmount, saleAmount);
+        console.log(typeof profitAmount, profitAmount);
+
 
         // Insert sale record
         await client.query(
@@ -579,18 +587,20 @@ app.post('/purchase', async (req, res) => {
         // Update bank summary
         const bankQuery = `
             INSERT INTO bank_summary (date, total_sales, total_profit, total_purchases, balance)
-            VALUES (CURRENT_DATE, $1, $2, 0, $1 - 0)
+            VALUES (CURRENT_DATE, $1::numeric, $2::numeric, 0, $1::numeric - 0)
             ON CONFLICT (date) DO UPDATE
-            SET total_sales = bank_summary.total_sales + $1,
-                total_profit = bank_summary.total_profit + $2,
-                balance = (bank_summary.total_sales + $1) - bank_summary.total_purchases;
+            SET total_sales = bank_summary.total_sales + $1::numeric,
+                total_profit = bank_summary.total_profit + $2::numeric,
+                balance = (bank_summary.total_sales + $1::numeric) - bank_summary.total_purchases;
         `;
         await client.query(bankQuery, [saleAmount, profitAmount]);
 
         await client.query('COMMIT'); // Commit transaction
 
         // Emit real-time update to dashboard
-        io.emit('sale_made', updatedProduct.rows[0]);
+        if (updatedProduct.rows.length > 0) {
+            io.emit('sale_made', updatedProduct.rows[0]); // Ensure data before emitting
+        }
 
         res.status(200).json({ message: 'Purchase recorded', product: updatedProduct.rows[0] });
     } catch (error) {
@@ -600,6 +610,38 @@ app.post('/purchase', async (req, res) => {
     } finally {
         client.release(); // Correctly release the connection
     }
+
+    let { productId, quantitySold } = req.body;
+
+// Validate input
+if (!productId || isNaN(quantitySold)) {
+    console.error('Invalid input:', req.body);
+    return res.status(400).json({ message: 'Invalid input: productId or quantitySold' });
+}
+
+quantitySold = parseInt(quantitySold, 10); // Ensure it's an integer
+
+// Get product details
+const productQuery = `SELECT * FROM products WHERE id = $1`;
+const productResult = await client.query(productQuery, [productId]);
+
+if (productResult.rows.length === 0) {
+    throw new Error('Product not found');
+}
+const product = productResult.rows[0];
+
+// Log product details
+console.log('Product details:', product);
+
+// Calculate sale amount and profit
+const unitPrice = Number(product.unit_price) || 0;
+const profitPerUnit = Number(product.profit) || 0;
+const saleAmount = parseFloat((unitPrice * quantitySold).toFixed(2));
+const profitAmount = parseFloat((profitPerUnit * quantitySold).toFixed(2));
+
+// Log calculations
+console.log('saleAmount:', saleAmount, 'profitAmount:', profitAmount);
+
 });
 
 
@@ -696,6 +738,10 @@ io.on('connection', (socket) => {
 });
 
 
+pool.on('connect', () => console.log('Database pool connected.'));
+pool.on('acquire', () => console.log('Database connection acquired.'));
+pool.on('remove', () => console.log('Database connection released.'));
+pool.on('error', (err) => console.error('Database pool error:', err));
 
 
 
@@ -706,7 +752,7 @@ app.use(express.static(path.join(__dirname, 'styles')));
 app.use(express.static(path.join(__dirname)));
 
 // Start the server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

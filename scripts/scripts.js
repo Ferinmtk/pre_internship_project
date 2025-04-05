@@ -235,46 +235,47 @@ function loadContent(page) {
   } else if (page === "inventory") {
     // Display inventory section
     content.innerHTML = `
-      <h2>Inventory Dashboard</h2>
-      <div class="inventory-section">
-        <div class="inventory-metrics">
-          <div class="metric">
-            <h3>Pred. Months Until Stock Outage</h3>
-            <ul id="stock-outage-list"></ul>
-          </div>
-          <div class="metric">
-            <h3>Stock Check</h3>
-            <p id="days-since-check"></p>
-            <p id="inventory-accuracy"></p>
-          </div>
-          <div class="metric">
-            <h3>Warehouse</h3>
-            <p id="warehouse-utilization"></p>
-            <p id="stock-value"></p>
-          </div>
-          <div class="metric">
-            <h3>Returns</h3>
-            <p id="returns-to-process"></p>
-            <p id="return-rate"></p>
-          </div>
+    <h2>Inventory Dashboard</h2>
+    <div class="inventory-section">
+      <div class="inventory-metrics">
+        <div class="metric">
+          <h3>Pred. Months Until Stock Outage</h3>
+          <ul id="stock-outage-list"></ul>
         </div>
-
-        <h3>In Stock</h3>
-        <table class="styled-table">
-          <thead>
-            <tr>
-              <th>Product Name</th>
-              <th>In Stock</th>
-              <th>Avg 30-Day Orders</th>
-              <th>Unit Price</th>
-            </tr>
-          </thead>
-          <tbody id="in-stock-tbody">
-            <!-- In stock product rows will be dynamically inserted here -->
-          </tbody>
-        </table>
+        <div class="metric">
+          <h3>Stock Check</h3>
+          <p id="days-since-check"></p>
+          <p id="inventory-accuracy"></p>
+        </div>
+        <div class="metric">
+          <h3>Warehouse</h3>
+          <p id="warehouse-utilization"></p>
+          <p id="stock-value"></p>
+        </div>
+        <div class="metric">
+          <h3>Returns</h3>
+          <p id="returns-to-process"></p>
+          <p id="return-rate"></p>
+        </div>
       </div>
-    `;
+  
+      <h3>In Stock</h3>
+      <table class="styled-table">
+        <thead>
+          <tr>
+            <th>Product Name</th>
+            <th>Quantity</th>
+            <th>Avg 30-Day Orders</th>
+            <th>Unit Price</th>
+          </tr>
+        </thead>
+        <tbody id="in-stock-tbody">
+          <!-- Stock rows will be dynamically inserted here -->
+        </tbody>
+      </table>
+    </div>
+  `;
+  
 
     // Fetch and display inventory data
     fetchInventoryData();
@@ -563,36 +564,62 @@ function displayReport(data, type) {
   reportContent.innerHTML = table;
 }
 
+//display totals at the bottom of the In Stock table:
+async function fetchInventoryData() {
+  try {
+      // Fetch data from the backend
+      const response = await fetch('/inventory-data');
+      const data = await response.json();
 
-function fetchInventoryData() {
-  fetch('/inventory-data')
-    .then(response => response.json())
-    .then(data => {
+      // Debug the API response
+      console.log('Received inventory data:', data);
+
+      // Populate stock outage data
       const stockOutageList = data.stockOutage.map(item => `
-        <li>${item.product}: ${item.months} months</li>
+          <li>${item.product}: ${item.months} months</li>
       `).join('');
       document.getElementById('stock-outage-list').innerHTML = stockOutageList;
 
+      // Populate other metrics
       document.getElementById('days-since-check').textContent = `Days since last check: ${data.stockCheck.daysSinceLastCheck}`;
       document.getElementById('inventory-accuracy').textContent = `Inventory accuracy: ${data.stockCheck.accuracy}%`;
-
       document.getElementById('warehouse-utilization').textContent = `Warehouse utilization: ${data.warehouse.utilization}%`;
       document.getElementById('stock-value').textContent = `Value of stock: $${data.warehouse.stockValue}M`;
-
       document.getElementById('returns-to-process').textContent = `Returns to be processed: ${data.returns.toBeProcessed}`;
       document.getElementById('return-rate').textContent = `Return rate: ${data.returns.returnRate}%`;
 
+      // Populate in-stock table
       const inStockRows = data.inStock.map(product => `
-        <tr>
-          <td>${product.name}</td>
-          <td>${product.inStock}</td>
-          <td>${product.avg30DayOrders}</td>
-          <td>${product.unitPrice}</td>
-        </tr>
+          <tr>
+              <td>${product.name || 'Unknown'}</td>
+              <td>${product.inStock || 0}</td>
+              <td>${product.avg30DayOrders ? product.avg30DayOrders.toFixed(2) : 0}</td>
+              <td>${product.unitPrice ? `$${product.unitPrice.toFixed(2)}` : '$0.00'}</td>
+          </tr>
       `).join('');
-      document.getElementById('in-stock-tbody').innerHTML = inStockRows;
-    })
-    .catch(error => console.error('Error fetching inventory data:', error));
+
+      // Check generated rows for debugging
+      console.log('Generated HTML for rows:', inStockRows);
+
+      // Insert rows into the table body
+      const tbody = document.getElementById('in-stock-tbody');
+      tbody.innerHTML = inStockRows;
+
+      // Add totals row to the table
+      const totalsRow = `
+          <tr class="totals-row">
+              <td><strong>Totals</strong></td>
+              <td><strong>${data.totals.totalInStock}</strong></td>
+              <td><strong>${data.totals.totalAvg30DayOrders.toFixed(2)}</strong></td>
+              <td><strong>$${data.totals.totalStockValue}</strong></td>
+          </tr>
+      `;
+      tbody.insertAdjacentHTML('beforeend', totalsRow);
+
+  } catch (error) {
+      // Log errors for debugging
+      console.error('Error fetching inventory data:', error);
+  }
 }
 
 
